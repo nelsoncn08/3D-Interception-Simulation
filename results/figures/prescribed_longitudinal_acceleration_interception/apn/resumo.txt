@@ -1,0 +1,13 @@
+Cenário: Prescribed longitudinal acceleration interception
+Lei de guiagem: APN
+Interceptou: sim
+Tempo de interceptação: 83.01 s
+Distância mínima: 0.404 m
+Tempo na distância mínima: 83.01 s
+Aceleração máxima comandada: 9.547 m/s²
+Aceleração máxima aplicada: 9.547 m/s²
+Esforço de controle acumulado: 164.769
+Tempo em saturação: 0.000 s
+Fração em saturação: 0.00 %
+Velocidade máxima do perseguidor: 720.553 m/s
+Velocidade final do perseguidor: 677.543 m/s

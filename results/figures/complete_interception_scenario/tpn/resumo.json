@@ -1,0 +1,19 @@
+{
+    "scenario_name": "Complete interception scenario",
+    "guidance_law": "TPN",
+    "intercepted": false,
+    "intercept_time_s": null,
+    "min_distance_m": 816.2954158995777,
+    "time_at_min_distance_s": 83.84,
+    "closest_approach_reached": false,
+    "closest_approach_time_s": null,
+    "max_commanded_acceleration_m_s2": 486.2340923325005,
+    "max_applied_acceleration_m_s2": 4.9033250000000015,
+    "control_effort_m2_s3": 1538.8393936399605,
+    "saturation_time_s": 55.1,
+    "saturation_fraction": 0.15305130413044082,
+    "final_time_s": 360.0,
+    "final_range_m": 141021.60951082408,
+    "max_pursuer_speed_m_s": 720.5962983315669,
+    "final_pursuer_speed_m_s": 400.6818518641658
+}

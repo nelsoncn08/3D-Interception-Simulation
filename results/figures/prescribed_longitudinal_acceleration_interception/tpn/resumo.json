@@ -1,0 +1,19 @@
+{
+    "scenario_name": "Prescribed longitudinal acceleration interception",
+    "guidance_law": "TPN",
+    "intercepted": true,
+    "intercept_time_s": 83.8,
+    "min_distance_m": 0.10239858595987872,
+    "time_at_min_distance_s": 83.8,
+    "closest_approach_reached": true,
+    "closest_approach_time_s": 83.8,
+    "max_commanded_acceleration_m_s2": 114.86085422168533,
+    "max_applied_acceleration_m_s2": 114.86085422168533,
+    "control_effort_m2_s3": 1709.248810550064,
+    "saturation_time_s": 0.0,
+    "saturation_fraction": 0.0,
+    "final_time_s": 83.81,
+    "final_range_m": 6.7183899590754095,
+    "max_pursuer_speed_m_s": 720.5554842859964,
+    "final_pursuer_speed_m_s": 676.763426095149
+}

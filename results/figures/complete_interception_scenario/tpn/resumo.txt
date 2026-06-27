@@ -1,0 +1,13 @@
+Cenário: Complete interception scenario
+Lei de guiagem: TPN
+Interceptou: não
+Tempo de interceptação: --
+Distância mínima: 816.295 m
+Tempo na distância mínima: 83.84 s
+Aceleração máxima comandada: 486.234 m/s²
+Aceleração máxima aplicada: 4.903 m/s²
+Esforço de controle acumulado: 1538.839
+Tempo em saturação: 55.100 s
+Fração em saturação: 15.31 %
+Velocidade máxima do perseguidor: 720.596 m/s
+Velocidade final do perseguidor: 400.682 m/s
