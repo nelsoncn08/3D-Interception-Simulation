@@ -27,11 +27,13 @@ from results.plot_config import (
 )
 
 
+# Return the color associated with each guidance law
 def _guidance_color(results):
     guidance_law = results.get("guidance_law", "Unknown").upper()
     return LAW_COLORS.get(guidance_law, "tab:purple")
 
 
+# Bug fix: ensure that the plotting functions always receive a list of results
 def _as_list(results):
     if isinstance(results, list):
         return results
@@ -39,10 +41,12 @@ def _as_list(results):
     return [results]
 
 
+# Return the guidance law name used in legends
 def _guidance_label(results):
     return results.get("guidance_law", "Unknown")
 
 
+# Return the magnitude history of scalar or vector
 def _norm_history(vector_history):
     vector_history = np.asarray(vector_history, dtype=float)
 
@@ -55,6 +59,7 @@ def _norm_history(vector_history):
     return np.linalg.norm(vector_history, axis=1)
 
 
+# Check if a given history exists and has nonzero values
 def _has_nonzero_history(results, key, tolerance=1e-12):
     for result in _as_list(results):
         if key not in result:
@@ -68,6 +73,7 @@ def _has_nonzero_history(results, key, tolerance=1e-12):
     return False
 
 
+# Remove visually excessive spikes from the plots
 def _remove_plot_spikes(values, reference_limit=None, factor=10.0):
     values = np.asarray(values, dtype=float).copy()
 
@@ -84,6 +90,7 @@ def _remove_plot_spikes(values, reference_limit=None, factor=10.0):
     return values
 
 
+# Create the output file path when an output directory is provided
 def _make_output_file(output_directory, filename):
     if output_directory is None:
         return None
@@ -94,16 +101,19 @@ def _make_output_file(output_directory, filename):
     return output_directory / filename
 
 
+# Save the current figure
 def _save_or_show(output_file=None, show_plot=False):
     if output_file is not None:
         plt.savefig(output_file, dpi=DPI, bbox_inches="tight")
 
+    # Show plots for interactive use if requested
     if show_plot:
         plt.show()
 
     plt.close()
 
 
+# Build the output filename using an optional prefix
 def _build_filename(name, prefix=None, file_format="png"):
     if prefix is None or prefix == "":
         return f"{name}.{file_format}"
@@ -111,39 +121,41 @@ def _build_filename(name, prefix=None, file_format="png"):
     return f"{name}_{prefix}.{file_format}"
 
 
-def _format_2d_axes(ax):
+# Formatting for 2D plots
+def _format_2d_axes(ax, show_legend=True):
     ax.tick_params(axis="both", labelsize=TICK_LABEL_SIZE)
 
     if GRID:
         ax.grid(True)
 
-    ax.legend(fontsize=LEGEND_SIZE)
+    if show_legend:
+        ax.legend(fontsize=LEGEND_SIZE)
 
 
-def _format_3d_axes(ax):
+# Formatting for 3D plots
+def _format_3d_axes(ax, show_legend=True):
     ax.tick_params(axis="x", labelsize=TICK_LABEL_SIZE)
     ax.tick_params(axis="y", labelsize=TICK_LABEL_SIZE)
     ax.tick_params(axis="z", labelsize=TICK_LABEL_SIZE)
 
-    ax.legend(fontsize=LEGEND_SIZE)
+    if show_legend:
+        ax.legend(fontsize=LEGEND_SIZE)
 
 
-def plot_trajectory(
-    results,
-    output_file=None,
-    show_plot=False,
-    language=DEFAULT_LANGUAGE,
-):
+# Plot the 3D trajectories
+def plot_trajectory(results, output_file=None, show_plot=False, language=DEFAULT_LANGUAGE, show_legend=True):
+
     text = get_text(language)
     results_list = _as_list(results)
 
     fig = plt.figure(figsize=FIGURE_SIZE_3D)
     ax = fig.add_subplot(111, projection="3d")
 
-    # Use the longest target history, since different laws may stop at different times.
+    # Use the longest target history because each law may stop at a different time
     reference_result = max(results_list, key=lambda item: len(item["time"]))
     rT = reference_result["rT"]
 
+    # Target trajectory is plotted first to ensure it appears behind the pursuer trajectories
     ax.plot(
         rT[:, 0],
         rT[:, 1],
@@ -175,6 +187,7 @@ def plot_trajectory(
         depthshade=False,
     )
 
+    # Plot the pursuer trajectory(ies)
     for result in results_list:
         rM = result["rM"]
         label = _guidance_label(result)
@@ -198,7 +211,7 @@ def plot_trajectory(
             marker="o",
         )
 
-        # Determine the index of the interception point or the last point in the pursuer's trajectory
+        # Mark the interception point if capture occurred; otherwise mark the final point
         intercepted = bool(result.get("intercepted", False))
         time = np.asarray(result.get("time", []), dtype=float)
         R = np.asarray(result.get("R", []), dtype=float)
@@ -242,17 +255,14 @@ def plot_trajectory(
     if USE_FIGURE_TITLES:
         ax.set_title(text["trajectory_title"])
 
-    _format_3d_axes(ax)
+    _format_3d_axes(ax, show_legend=show_legend)
 
     _save_or_show(output_file, show_plot)
 
 
-def plot_range(
-    results,
-    output_file=None,
-    show_plot=False,
-    language=DEFAULT_LANGUAGE,
-):
+# Plot relative distance
+def plot_range(results, output_file=None, show_plot=False, language=DEFAULT_LANGUAGE, show_legend=True):
+
     text = get_text(language)
     results_list = _as_list(results)
 
@@ -277,7 +287,7 @@ def plot_range(
         time_at_min_distance = result.get("time_at_min_distance", None)
         min_distance = result.get("min_distance", None)
 
-        # Plot the closest-approach marker only if capture occurred.
+        # Mark the closest approach only when it satisfies the capture condition
         captured = (
             capture_radius is not None
             and min_distance is not None
@@ -309,23 +319,25 @@ def plot_range(
     if USE_FIGURE_TITLES:
         ax.set_title(text["range_title"])
 
-    _format_2d_axes(ax)
+    _format_2d_axes(ax, show_legend=show_legend)
 
     _save_or_show(output_file, show_plot)
 
 
+# Plot acceleration magnitudes
 def plot_acceleration(
     results,
     output_file=None,
     show_plot=False,
     language=DEFAULT_LANGUAGE,
+    show_legend=True,
 ):
     text = get_text(language)
     results_list = _as_list(results)
 
     fig, ax = plt.subplots(figsize=FIGURE_SIZE_2D)
 
-    # Plot applied acceleration only when lateral acceleration saturation is active.
+    # Applied acceleration is plotted only when lateral saturation is active
     plot_applied = any(
         result.get("acceleration_saturation", False)
         and result.get("a_cmd_max", None) is not None
@@ -333,7 +345,7 @@ def plot_acceleration(
         for result in results_list
     )
 
-    # Plot total acceleration only when prescribed longitudinal acceleration exists.
+    # Total acceleration is plotted only when longitudinal acceleration exists
     plot_total = _has_nonzero_history(results_list, "aM_parallel")
 
     for result in results_list:
@@ -341,19 +353,13 @@ def plot_acceleration(
         label = _guidance_label(result)
         color = _guidance_color(result)
 
-        # Commanded: requested by the guidance law before saturation.
-        # Applied: lateral guidance command after saturation.
-        # Total: applied lateral guidance plus prescribed longitudinal acceleration.
         a_cmd = result["a_cmd"]
         a_applied = result.get("a_applied", a_cmd)
         aM_total = result.get("aM_total", None)
 
         a_cmd_norm = _norm_history(a_cmd)
 
-        # Remove only visually excessive isolated command spikes.
-        # The original data and metrics remain unchanged.
-        result_a_cmd_max = result.get("a_cmd_max", None)
-
+        # Plot spikes are hidden for better visualization
         if REMOVE_PLOT_SPIKES:
             a_cmd_norm = _remove_plot_spikes(
                 a_cmd_norm,
@@ -429,17 +435,14 @@ def plot_acceleration(
     if USE_FIGURE_TITLES:
         ax.set_title(text["acceleration_title"])
 
-    _format_2d_axes(ax)
+    _format_2d_axes(ax, show_legend=show_legend)
 
     _save_or_show(output_file, show_plot)
 
 
-def plot_longitudinal_acceleration(
-    results,
-    output_file=None,
-    show_plot=False,
-    language=DEFAULT_LANGUAGE,
-):
+# Plot the prescribed longitudinal acceleration history
+def plot_longitudinal_acceleration(results, output_file=None, show_plot=False, language=DEFAULT_LANGUAGE, show_legend=True):
+
     text = get_text(language)
     results_list = _as_list(results)
 
@@ -453,8 +456,7 @@ def plot_longitudinal_acceleration(
         label = _guidance_label(result)
         color = _guidance_color(result)
 
-        # Signed longitudinal acceleration:
-        # positive values accelerate the pursuer, negative values decelerate it.
+        # Positive values accelerate the pursuer; negative values decelerate it
         aM_parallel = np.asarray(result["aM_parallel"], dtype=float)
         n_parallel = min(len(time), len(aM_parallel))
 
@@ -472,17 +474,14 @@ def plot_longitudinal_acceleration(
     if USE_FIGURE_TITLES:
         ax.set_title(text["longitudinal_acceleration_title"])
 
-    _format_2d_axes(ax)
+    _format_2d_axes(ax, show_legend=show_legend)
 
     _save_or_show(output_file, show_plot)
 
 
-def plot_closing_velocity(
-    results,
-    output_file=None,
-    show_plot=False,
-    language=DEFAULT_LANGUAGE,
-):
+# Plot the closing velocity history
+def plot_closing_velocity(results, output_file=None, show_plot=False, language=DEFAULT_LANGUAGE, show_legend=True):
+
     text = get_text(language)
     results_list = _as_list(results)
 
@@ -510,17 +509,14 @@ def plot_closing_velocity(
     if USE_FIGURE_TITLES:
         ax.set_title(text["closing_velocity_title"])
 
-    _format_2d_axes(ax)
+    _format_2d_axes(ax, show_legend=show_legend)
 
     _save_or_show(output_file, show_plot)
 
 
-def plot_pursuer_speed(
-    results,
-    output_file=None,
-    show_plot=False,
-    language=DEFAULT_LANGUAGE,
-):
+# Plot the pursuer speed history
+def plot_pursuer_speed(results, output_file=None, show_plot=False, language=DEFAULT_LANGUAGE, show_legend=True):
+
     text = get_text(language)
     results_list = _as_list(results)
 
@@ -552,11 +548,12 @@ def plot_pursuer_speed(
     if USE_FIGURE_TITLES:
         ax.set_title(text["pursuer_speed_title"])
 
-    _format_2d_axes(ax)
+    _format_2d_axes(ax, show_legend=show_legend)
 
     _save_or_show(output_file, show_plot)
 
 
+# Generate the standard plots for one scenario or a group of laws
 def plot_results(
     results,
     output_directory=None,
@@ -566,6 +563,7 @@ def plot_results(
     show_plots=False,
     include_closing_velocity=False,
     language=DEFAULT_LANGUAGE,
+    show_legend=True,
 ):
     if output_directory is None:
         output_directory = output_dir
@@ -597,6 +595,7 @@ def plot_results(
         output_file=trajectory_file,
         show_plot=show_plot,
         language=language,
+        show_legend=show_legend,
     )
 
     plot_range(
@@ -604,6 +603,7 @@ def plot_results(
         output_file=range_file,
         show_plot=show_plot,
         language=language,
+        show_legend=show_legend,
     )
 
     plot_acceleration(
@@ -611,6 +611,7 @@ def plot_results(
         output_file=acceleration_file,
         show_plot=show_plot,
         language=language,
+        show_legend=show_legend,
     )
 
     plot_pursuer_speed(
@@ -618,8 +619,10 @@ def plot_results(
         output_file=pursuer_speed_file,
         show_plot=show_plot,
         language=language,
+        show_legend=show_legend,
     )
 
+    # Hot fix: the closing velocity plot is optional because it is not always useful
     if include_closing_velocity:
         closing_velocity_file = _make_output_file(
             output_directory,
@@ -631,4 +634,5 @@ def plot_results(
             output_file=closing_velocity_file,
             show_plot=show_plot,
             language=language,
+            show_legend=show_legend,
         )

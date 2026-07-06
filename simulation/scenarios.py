@@ -1,7 +1,6 @@
 import numpy as np
 
 STANDARD_GRAVITY = 9.80665
-
 GUIDANCE_ACCELERATION_LIMIT_G = 0.5
 GUIDANCE_ACCELERATION_LIMIT = GUIDANCE_ACCELERATION_LIMIT_G * STANDARD_GRAVITY
 
@@ -15,31 +14,30 @@ def base_scenario(guidance_law="TPN"):
         "guidance_law": guidance_law,
 
         "dt": 0.01,
-        "t_final": 360.0,
+        "t_final": 400.0,
         "capture_radius": 5.0,
 
-        # The simulation registers the capture event, but may continue
-        # until the closest approach is reached.
+        # Capture is registered, but the simulation may continue until closest approach
         "stop_at_capture": False,
         "stop_at_closest_approach": True,
         "closest_approach_confirm_steps": 1,
         "verbose": False,
 
+        # Guidance gains
         "N": 3.0,
         "k": 0.75,
 
         "rM0": np.array([0.0, 0.0, 0.0]),
 
-        # Representative constant speed for cases without prescribed
-        # longitudinal acceleration.
+        # Constant speed for cases without longitudinal acceleration
         "vM0": np.array([543.8, 0.0, 0.0]),
 
-        # Target initial condition.
+        # Initial target state
         "rT0": np.array([48000.0, 12000.0, 4000.0]),  # Approximately 50 km
         "vT0": np.array([-50.0, 0.0, -10.0]),         # Approximately 51 m/s
         "aT0": np.array([0.0, 0.0, 0.0]),
 
-        # Default values for ideal cases.
+        # Default ideal-case settings
         "a_cmd_max": np.inf,
         "guidance_update_interval": 0.01,
 
@@ -47,7 +45,6 @@ def base_scenario(guidance_law="TPN"):
         "acceleration_saturation": False,
         "discrete_guidance": False,
         "variable_acceleration": False,
-
         "pursuer_acceleration_function": None,
     }
 
@@ -65,57 +62,54 @@ def nominal(guidance_law="TPN"):
     return scenario
 
 
-# Scenario with prescribed lateral acceleration of the target
+# Scenario with maneuvering target
 def maneuvering_target(guidance_law="TPN"):
     scenario = base_scenario(guidance_law)
 
     scenario["name"] = "Target lateral acceleration interception"
     scenario["target_maneuver"] = True
 
-    # Mild lateral acceleration used as a sensitivity case for a Shahed-like target.
+    # Mild lateral acceleration used for a Shahed-like target
     scenario["aT0"] = np.array([0.0, 1.0, 0.0])
 
     return scenario
 
 
-# Scenario with guidance command saturation
+# Scenario with lateral guidance command saturation
 def acceleration_saturation(guidance_law="TPN"):
     scenario = maneuvering_target(guidance_law)
 
     scenario["name"] = "Guidance command saturation interception"
     scenario["acceleration_saturation"] = True
 
-    # Maximum lateral guidance command.
     scenario["a_cmd_max"] = GUIDANCE_ACCELERATION_LIMIT
 
     return scenario
 
 
-# Scenario with discrete guidance update
+# Scenario with discrete guidance command updates
 def discrete_guidance(guidance_law="TPN"):
     scenario = maneuvering_target(guidance_law)
 
     scenario["name"] = "Discrete guidance update interception"
     scenario["discrete_guidance"] = True
 
-    # Guidance command update interval.
     scenario["guidance_update_interval"] = GUIDANCE_UPDATE_INTERVAL
 
     return scenario
 
 
-# Scenario with prescribed longitudinal acceleration of the pursuer
+# Scenario with variable acceleration of the pursuer
 def variable_acceleration(guidance_law="TPN"):
     scenario = maneuvering_target(guidance_law)
 
     scenario["name"] = "Prescribed longitudinal acceleration interception"
     scenario["variable_acceleration"] = True
 
-    # Small initial velocity used only to define the initial direction
-    # of the prescribed longitudinal acceleration.
+    # Hot fix: small initial speed only to define the velocity direction
     scenario["vM0"] = np.array([0.1, 0.0, 0.0])
 
-    # Prescribed longitudinal acceleration profile [m/s²].
+    # Prescribed longitudinal acceleration profile [m/s²]
     def pursuer_acceleration_function(t):
         if t <= 4.0:
             return 45.0
@@ -129,7 +123,7 @@ def variable_acceleration(guidance_law="TPN"):
     return scenario
 
 
-# Complete scenario with all implementation effects
+# Complete scenario combining all implementation effects
 def complete(guidance_law="TPN"):
     scenario = variable_acceleration(guidance_law)
 

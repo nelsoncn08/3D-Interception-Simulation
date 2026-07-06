@@ -1,0 +1,13 @@
+Cenário: Complete interception scenario
+Lei de guiagem: PP
+Interceptou: não
+Tempo de interceptação: --
+Distância mínima: 900.944 m
+Tempo na distância mínima: 83.11 s
+Aceleração máxima comandada: 508.012 m/s²
+Aceleração máxima aplicada: 4.903 m/s²
+Esforço de controle acumulado: 8261.843
+Tempo em saturação: 333.310 s
+Fração em saturação: 83.33 %
+Velocidade máxima do perseguidor: 720.598 m/s
+Velocidade final do perseguidor: 361.406 m/s

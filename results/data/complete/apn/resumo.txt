@@ -1,0 +1,13 @@
+Cenário: Complete interception scenario
+Lei de guiagem: APN
+Interceptou: sim
+Tempo de interceptação: 83.01 s
+Distância mínima: 1.322 m
+Tempo na distância mínima: 83.01 s
+Aceleração máxima comandada: 8.070 m/s²
+Aceleração máxima aplicada: 4.903 m/s²
+Esforço de controle acumulado: 165.866
+Tempo em saturação: 0.020 s
+Fração em saturação: 0.02 %
+Velocidade máxima do perseguidor: 720.583 m/s
+Velocidade final do perseguidor: 677.586 m/s

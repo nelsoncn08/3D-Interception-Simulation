@@ -1,13 +1,12 @@
 import csv
-import json
 import re
 from pathlib import Path
-
 import numpy as np
 
 from utilities.functions import norm
 
 
+# Create names for folders/files
 def sanitize_name(name):
     name = name.strip().lower()
     name = re.sub(r"[^a-z0-9]+", "_", name)
@@ -15,8 +14,11 @@ def sanitize_name(name):
     return name.strip("_")
 
 
+# Create one output folder for each scenario and guidance law
 def create_output_directory(results, root_directory="resultados"):
-    scenario_name = sanitize_name(results["scenario_name"])
+    scenario_name = sanitize_name(
+        results.get("scenario_key", results["scenario_name"])
+    )
     guidance_law = sanitize_name(results["guidance_law"])
 
     output_directory = Path(root_directory) / scenario_name / guidance_law
@@ -25,6 +27,7 @@ def create_output_directory(results, root_directory="resultados"):
     return output_directory
 
 
+# Save histories of the main variables in CSV
 def save_history_csv(results, output_directory):
     output_file = output_directory / "historico.csv"
 
@@ -55,6 +58,7 @@ def save_history_csv(results, output_directory):
             "guidance_updated",
         ])
 
+        # Store scalar quantities and acceleration magnitudes at each time step
         for i in range(len(time)):
             writer.writerow([
                 time[i],
@@ -70,6 +74,7 @@ def save_history_csv(results, output_directory):
             ])
 
 
+# Compute the main performance metrics of one simulation
 def compute_summary(results):
     a_cmd_norm = np.linalg.norm(results["a_cmd"], axis=1)
     a_applied_norm = np.linalg.norm(results["a_applied"], axis=1)
@@ -77,6 +82,7 @@ def compute_summary(results):
     dt = results["dt"]
     saturated = results["saturated"]
 
+    # Saturation metrics are based on the boolean saturation history
     if len(saturated) > 0:
         saturation_time = float(np.sum(saturated) * dt)
         saturation_fraction = float(np.mean(saturated))
@@ -84,6 +90,7 @@ def compute_summary(results):
         saturation_time = 0.0
         saturation_fraction = 0.0
 
+    # Applied control effort is the discrete integral of acceleration squared
     control_effort = float(np.sum(a_applied_norm**2) * dt)
 
     summary = {
@@ -109,14 +116,11 @@ def compute_summary(results):
     return summary
 
 
+# Save the summary in txt
 def save_summary(results, output_directory):
     summary = compute_summary(results)
 
-    json_file = output_directory / "resumo.json"
     txt_file = output_directory / "resumo.txt"
-
-    with open(json_file, mode="w", encoding="utf-8") as file:
-        json.dump(summary, file, indent=4, ensure_ascii=False)
 
     with open(txt_file, mode="w", encoding="utf-8") as file:
         file.write(format_summary(summary))
@@ -124,6 +128,7 @@ def save_summary(results, output_directory):
     return summary
 
 
+# Format the summary
 def format_summary(summary):
     intercepted_text = "sim" if summary["intercepted"] else "não"
 
@@ -151,14 +156,14 @@ def format_summary(summary):
     return text
 
 
+# Print the summary in the terminal
 def print_summary(summary):
-    print("\n" + "=" * 60)
-    print("RESUMO DA SIMULAÇÃO")
-    print("=" * 60)
+    print("\n- RESUMO DA SIMULAÇÃO: ")
     print(format_summary(summary).strip())
-    print("=" * 60 + "\n")
+    print("\n")
 
 
+# Save all standard output files for one simulation run
 def save_all_outputs(results, root_directory="resultados"):
     output_directory = create_output_directory(results, root_directory)
 

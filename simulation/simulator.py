@@ -1,18 +1,11 @@
 import numpy as np
-from guidance.guidance_laws import (
-    pure_pursuit,
-    true_proportional_navigation,
-    pure_proportional_navigation,
-    augmented_proportional_navigation,
-    relative_quantities,
-)
+from guidance.guidance_laws import pure_pursuit, true_proportional_navigation, pure_proportional_navigation, augmented_proportional_navigation, relative_quantities
 from utilities.functions import unit, norm, saturate
 
 
 # Simulate one pursuer-target engagement
 def simulate_engagement(scenario=None):
 
-    # Bug fix: an interception scenario must be provided by main.py
     if scenario is None:
         raise ValueError("A scenario must be provided to simulate_engagement().")
 
@@ -21,34 +14,22 @@ def simulate_engagement(scenario=None):
     dt = scenario["dt"]
     t_final = scenario["t_final"]
     capture_radius = scenario["capture_radius"]
-
-    # Terminal output control
-    #
-    # Keep False by default so that only the final summary is printed by main.py.
     verbose = scenario.get("verbose", False)
 
-    # Closest approach stopping settings
-    #
-    # If stop_at_capture is True, the simulation stops as soon as the capture
-    # radius is reached.
-    #
-    # If stop_at_capture is False and stop_at_closest_approach is True, the
-    # simulation registers the capture event but continues until the closest
-    # approach is reached.
+    # Stopping criteria
     stop_at_capture = scenario.get("stop_at_capture", False)
     stop_at_closest_approach = scenario.get("stop_at_closest_approach", True)
     closest_approach_confirm_steps = scenario.get("closest_approach_confirm_steps", 1)
 
-    # Pursuit and navigation gains
+    # Guidance gains
     N = scenario["N"]
     k = scenario["k"]
 
-    # Guidance command saturation settings
-    # This limit is applied only to the guidance command
+    # Guidance command saturation
     use_acceleration_saturation = scenario.get("acceleration_saturation", False)
     a_cmd_max = scenario.get("a_cmd_max", np.inf)
 
-    # Discrete guidance update settings
+    # Discrete guidance update
     use_discrete_guidance = scenario.get("discrete_guidance", False)
     guidance_update_interval = scenario.get("guidance_update_interval", dt)
 
@@ -59,21 +40,17 @@ def simulate_engagement(scenario=None):
 
     actual_guidance_update_interval = guidance_update_steps * dt
 
-    # Prescribed pursuer longitudinal acceleration settings
-    # Positive value: acceleration along the velocity direction
-    # Negative value: deceleration opposite to the velocity direction
+    # Prescribed longitudinal acceleration
     use_variable_acceleration = scenario.get("variable_acceleration", False)
     pursuer_acceleration_function = scenario.get("pursuer_acceleration_function", None)
 
-    # Initial pursuer state
+    # Initial states
     rM = scenario["rM0"].copy()
     vM = scenario["vM0"].copy()
-
-    # Initial target state
     rT = scenario["rT0"].copy()
     vT = scenario["vT0"].copy()
 
-    # Constant speed used when longitudinal acceleration is disabled
+    # Constant pursuer speed used when longitudinal acceleration is disabled
     V_M_constant = norm(vM)
 
     # State histories
@@ -126,9 +103,8 @@ def simulate_engagement(scenario=None):
         else:
             aT = np.asarray(scenario.get("aT0", np.zeros(3)), dtype=float)
 
-        r_rel, v_rel, R, lambda_hat, Vc, omega_los = relative_quantities(
-            rM, vM, rT, vT
-        )
+        # Relative geometry used by the guidance laws
+        r_rel, v_rel, R, lambda_hat, Vc, omega_los = relative_quantities(rM, vM, rT, vT)
 
         # Store state data
         time_history.append(t)
@@ -151,8 +127,7 @@ def simulate_engagement(scenario=None):
             min_distance = R
             time_at_min_distance = t
 
-        # Register interception when the capture radius is reached.
-        # The simulation does not necessarily stop here.
+        # Register capture without necessarily stopping the simulation
         if R <= capture_radius and not intercepted:
             intercepted = True
             intercept_time = t
@@ -160,7 +135,7 @@ def simulate_engagement(scenario=None):
             if verbose:
                 print(f"Capture radius reached at t = {t:.2f} s")
 
-        # Guidance update logic
+        # Update guidance command according to the selected law
         update_guidance = (i % guidance_update_steps == 0)
 
         if update_guidance:
@@ -174,14 +149,12 @@ def simulate_engagement(scenario=None):
                 a_cmd_current = pure_proportional_navigation(rM, vM, rT, vT, N)
 
             elif guidance_law == "APN":
-                a_cmd_current = augmented_proportional_navigation(
-                    rM, vM, rT, vT, aT, N
-                )
+                a_cmd_current = augmented_proportional_navigation(rM, vM, rT, vT, aT, N)
 
             else:
                 raise ValueError("Invalid guidance law. Use 'PP', 'TPN', 'PPN' or 'APN'.")
 
-        # Saturation is applied only to the guidance command
+        # Apply saturation only to the lateral guidance command
         if use_acceleration_saturation and not np.isinf(a_cmd_max):
             a_guidance_limit = a_cmd_max
             a_applied_current = saturate(a_cmd_current, a_guidance_limit)
@@ -191,26 +164,16 @@ def simulate_engagement(scenario=None):
 
         saturated = norm(a_applied_current - a_cmd_current) > 1e-9
 
-        # Prescribed longitudinal acceleration
-        #
-        # Positive value: acceleration along the pursuer velocity direction
-        # Negative value: deceleration opposite to the pursuer velocity direction
+        # Longitudinal acceleration prescribed along the pursuer velocity direction
         if use_variable_acceleration and callable(pursuer_acceleration_function):
             aM_parallel = float(pursuer_acceleration_function(t))
         else:
             aM_parallel = 0.0
 
-        # Longitudinal acceleration is applied along the pursuer velocity direction
         vM_hat = unit(vM)
         aM_longitudinal = aM_parallel * vM_hat
 
         # Total pursuer acceleration
-        #
-        # The total acceleration is the sum of:
-        # - the applied lateral guidance command;
-        # - the prescribed longitudinal acceleration.
-        #
-        # No total acceleration saturation is applied here.
         aM_total = a_applied_current + aM_longitudinal
 
         # Store acceleration data
@@ -223,15 +186,7 @@ def simulate_engagement(scenario=None):
         aM_longitudinal_history.append(aM_longitudinal.copy())
         aM_total_history.append(aM_total.copy())
 
-        # Optional stopping logic after capture
-        #
-        # If stop_at_capture is True, the simulation stops as soon as the capture
-        # radius is reached.
-        #
-        # If stop_at_closest_approach is True, the simulation continues after
-        # capture until the closest approach is reached. This is detected when
-        # the distance starts increasing or when the closing velocity becomes
-        # non-positive.
+        # Stop after capture if requested, or continue until closest approach
         if intercepted:
 
             if stop_at_capture:
@@ -269,13 +224,12 @@ def simulate_engagement(scenario=None):
             if norm(vM_temp) > 1e-12:
                 vM = V_M_constant * unit(vM_temp)
 
-        # Update target velocity
+        # Update target velocity and positions
         vT = vT + aT * dt
-
-        # Update positions
         rM = rM + vM * dt
         rT = rT + vT * dt
 
+    # Return all histories and final metrics needed for post-processing
     results = {
         "scenario_name": scenario["name"],
         "guidance_law": guidance_law,
