@@ -1,5 +1,1 @@
-Adicionado recurso para habilitar/desabilitar legenda dos gráficos.
-
-Deletada uma função que estava inutilizada.
-
-Refeitos os comentários do código para melhor entendimento de terceiros.
+This program was developed as part of my undergraduate thesis in Aerospace Engineering at the Federal University of Santa Maria (2026), entitled “Performance Evaluation of Guidance Laws under Implementation Constraints for the Three-Dimensional Interception of Attack Drones.”
